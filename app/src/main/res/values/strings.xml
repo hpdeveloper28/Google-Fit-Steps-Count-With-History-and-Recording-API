@@ -3,4 +3,7 @@
     <string name="from">From</string>
     <string name="to">To</string>
     <string name="steps_walked">Steps walked</string>
+    <string name="step_history">Step history</string>
+    <string name="logout">Logout</string>
+    <string name="login">Login</string>
 </resources>

@@ -23,8 +23,11 @@ public class SharedPreferenceManager {
     public void storeLong(String key, long value) {
         sharedPreferences.edit().putLong(key, value).apply();
     }
-
     public long getLong(String key) {
         return sharedPreferences.getLong(key, 0);
+    }
+
+    public void clearLong(String key) {
+        sharedPreferences.edit().remove(key).apply();
     }
 }
