@@ -52,7 +52,6 @@ public class GetStepsCountTask extends AsyncTask<Void, Void, Integer> {
     protected void onPostExecute(Integer steps) {
         super.onPostExecute(steps);
         // Store #endTime in shared preferene for next time use.
-
         stepUpdateListener.onStepUpdate(steps, startTime, endTime);
 
     }
@@ -82,7 +81,6 @@ public class GetStepsCountTask extends AsyncTask<Void, Void, Integer> {
                 List<DataSet> dataSets = bucket.getDataSets();
                 for (DataSet dataSet : dataSets) {
                     showDataSet(dataSet);
-//                        addSteps(steps);
                 }
             }
         }
@@ -91,7 +89,6 @@ public class GetStepsCountTask extends AsyncTask<Void, Void, Integer> {
             Log.i(TAG, "Get DataSet");
             for (DataSet dataSet : dataReadResult.getDataSets()) {
                 showDataSet(dataSet);
-//                    addSteps(steps);
             }
         } else {
             Log.i(TAG, "No history found for this user");
@@ -113,7 +110,6 @@ public class GetStepsCountTask extends AsyncTask<Void, Void, Integer> {
                 addSteps(steps);
             }
         }
-//            return steps;
     }
 }
 
