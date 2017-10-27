@@ -2,7 +2,6 @@ package com.mobiquity.googlefithistorysteps.activities;
 
 import android.content.Intent;
 import android.content.IntentSender;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
@@ -21,7 +20,6 @@ import com.google.android.gms.common.api.PendingResult;
 import com.google.android.gms.common.api.ResultCallback;
 import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.common.api.Status;
-import com.google.android.gms.fitness.ConfigApi;
 import com.google.android.gms.fitness.Fitness;
 import com.google.android.gms.fitness.FitnessStatusCodes;
 import com.google.android.gms.fitness.data.DataType;
@@ -118,7 +116,7 @@ public class DashBoardActivity extends BaseActivity implements GoogleApiClient.C
      * RECORDING API: To record user's steps count and store data in FIT store
      * CONFIG API: To enable/disable application with FIT
      */
-    private void connectGoogleClient(){
+    private void connectGoogleClient() {
         mGoogleApiClient = new GoogleApiClient.Builder(this)
                 .addApi(Fitness.HISTORY_API)
                 .addApi(Fitness.RECORDING_API)
@@ -131,9 +129,9 @@ public class DashBoardActivity extends BaseActivity implements GoogleApiClient.C
     }
 
     /**
-     * To signout/disable client with fit api
+     * To sign-out/disable client with fit api
      */
-    private void signOut(){
+    private void signOut() {
         CustomProgressbar.showProgressBar(DashBoardActivity.this, false);
         PendingResult<Status> statusPendingResult = Fitness.ConfigApi.disableFit(mGoogleApiClient);
         statusPendingResult.setResultCallback(new ResultCallback<Status>() {
