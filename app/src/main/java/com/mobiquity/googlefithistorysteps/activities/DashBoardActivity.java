@@ -19,16 +19,11 @@ import com.google.android.gms.common.api.Scope;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.fitness.Fitness;
 import com.google.android.gms.fitness.FitnessStatusCodes;
-import com.google.android.gms.fitness.data.Bucket;
-import com.google.android.gms.fitness.data.DataPoint;
-import com.google.android.gms.fitness.data.DataSet;
-import com.google.android.gms.fitness.data.DataSource;
 import com.google.android.gms.fitness.data.DataType;
-import com.google.android.gms.fitness.data.Field;
-import com.google.android.gms.fitness.request.DataReadRequest;
-import com.google.android.gms.fitness.result.DataReadResult;
 import com.mobiquity.googlefithistorysteps.R;
 import com.mobiquity.googlefithistorysteps.di.manager.SharedPreferenceManager;
+import com.mobiquity.googlefithistorysteps.interfaces.StepUpdateListener;
+import com.mobiquity.googlefithistorysteps.task.GetStepsCountTask;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -39,10 +34,9 @@ import java.util.concurrent.TimeUnit;
 
 import butterknife.BindView;
 
-public class DashBoardActivity extends BaseActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
+public class DashBoardActivity extends BaseActivity implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, StepUpdateListener {
 
     private static final String TAG = DashBoardActivity.class.getSimpleName();
-    private int totalSteps;
     private GoogleApiClient mGoogleApiClient;
     private static final int REQUEST_OAUTH = 1;
     @BindView(R.id.tvSteps)
@@ -103,14 +97,14 @@ public class DashBoardActivity extends BaseActivity implements GoogleApiClient.C
 
             cal.add(Calendar.MONTH, -1);
             long startTime = cal.getTimeInMillis();
-            new GetStepsCount(startTime, endTime).execute();
+            new GetStepsCountTask(mGoogleApiClient, startTime, endTime, this).execute();
         } else {
             long startTime = sharedPreferenceManager.getLong(SharedPreferenceManager.KEY_LAST_TIME_STAMP);
             Calendar cal = Calendar.getInstance();
             Date now = new Date();
             cal.setTime(now);
             long endTime = cal.getTimeInMillis();
-            new GetStepsCount(startTime, endTime).execute();
+            new GetStepsCountTask(mGoogleApiClient, startTime, endTime, this).execute();
         }
     }
 
@@ -142,104 +136,6 @@ public class DashBoardActivity extends BaseActivity implements GoogleApiClient.C
         }
     }
 
-
-    /**
-     * This Asynctask will get number of steps for user and update UI
-     * Integer as Result: Total count for steps
-     */
-    private class GetStepsCount extends AsyncTask<Void, Void, Integer> {
-
-        private long startTime, endTime;
-
-        private GetStepsCount(long startTime, long endTime) {
-            this.startTime = startTime;
-            this.endTime = endTime;
-        }
-
-        @Override
-        protected Integer doInBackground(Void... params) {
-            return getStepsCountFromFIT(startTime, endTime);
-        }
-
-        @Override
-        protected void onPostExecute(Integer integer) {
-            super.onPostExecute(integer);
-            // Store #endTime in shared preferene for next time use.
-            sharedPreferenceManager.storeLong(SharedPreferenceManager.KEY_LAST_TIME_STAMP, endTime);
-            txtSteps.setVisibility(View.VISIBLE);
-            txtSteps.setText(String.valueOf(integer));
-            pbSteps.setVisibility(View.GONE);
-
-            DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
-
-            txtFrom.setVisibility(View.VISIBLE);
-            txtFrom.setText(dateFormat.format(startTime));
-            pbFrom.setVisibility(View.GONE);
-            txtTo.setVisibility(View.VISIBLE);
-            txtTo.setText(dateFormat.format(endTime));
-            pbTo.setVisibility(View.GONE);
-        }
-
-        private int getStepsCountFromFIT(long startDateMillis, long endDateMillis) {
-
-            DataSource ESTIMATED_STEP_DELTAS = new DataSource.Builder()
-                    .setDataType(DataType.TYPE_STEP_COUNT_DELTA)
-                    .setType(DataSource.TYPE_DERIVED)
-                    .setStreamName("estimated_steps")
-                    .setAppPackageName("com.google.android.gms")
-                    .build();
-
-            DataReadRequest readRequest = new DataReadRequest.Builder()
-                    .aggregate(ESTIMATED_STEP_DELTAS, DataType.AGGREGATE_STEP_COUNT_DELTA)
-                    .bucketByTime(1, TimeUnit.DAYS)
-                    .setTimeRange(startDateMillis, endDateMillis, TimeUnit.MILLISECONDS)
-                    .build();
-
-            DataReadResult dataReadResult = Fitness.HistoryApi.readData(mGoogleApiClient, readRequest).await(1, TimeUnit.MINUTES);
-
-
-            //Used for aggregated data
-            if (dataReadResult.getBuckets().size() > 0) {
-                Log.i(TAG, "Get Buckets");
-                for (Bucket bucket : dataReadResult.getBuckets()) {
-                    List<DataSet> dataSets = bucket.getDataSets();
-                    for (DataSet dataSet : dataSets) {
-                        showDataSet(dataSet);
-//                        addSteps(steps);
-                    }
-                }
-            }
-            //Used for non-aggregated data
-            else if (dataReadResult.getDataSets().size() > 0) {
-                Log.i(TAG, "Get DataSet");
-                for (DataSet dataSet : dataReadResult.getDataSets()) {
-                    showDataSet(dataSet);
-//                    addSteps(steps);
-                }
-            } else {
-                Log.i(TAG, "No history found for this user");
-            }
-            return totalSteps;
-        }
-
-
-        private void addSteps(int step) {
-            Log.e(TAG, step+"");
-            totalSteps += step;
-        }
-
-        private void showDataSet(DataSet dataSet) {
-            int steps = 0;
-            for (DataPoint dp : dataSet.getDataPoints()) {
-                for (Field field : dp.getDataType().getFields()) {
-                    steps = dp.getValue(field).asInt();
-                    addSteps(steps);
-                }
-            }
-//            return steps;
-        }
-    }
-
     private void recordStepsActivity() {
         // To create a subscription, invoke the Recording API. As soon as the subscription is
         // active, fitness data will start recording.
@@ -248,8 +144,7 @@ public class DashBoardActivity extends BaseActivity implements GoogleApiClient.C
                     @Override
                     public void onResult(Status status) {
                         if (status.isSuccess()) {
-                            if (status.getStatusCode()
-                                    == FitnessStatusCodes.SUCCESS_ALREADY_SUBSCRIBED) {
+                            if (status.getStatusCode() == FitnessStatusCodes.SUCCESS_ALREADY_SUBSCRIBED) {
                                 Log.i(TAG, "Existing subscription for activity detected.");
                             } else {
                                 Log.i(TAG, "Successfully subscribed!");
@@ -259,5 +154,22 @@ public class DashBoardActivity extends BaseActivity implements GoogleApiClient.C
                         }
                     }
                 });
+    }
+
+    @Override
+    public void onStepUpdate(int steps, long startTime, long endTime) {
+        sharedPreferenceManager.storeLong(SharedPreferenceManager.KEY_LAST_TIME_STAMP, endTime);
+        txtSteps.setVisibility(View.VISIBLE);
+        txtSteps.setText(String.valueOf(steps));
+        pbSteps.setVisibility(View.GONE);
+
+        DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+
+        txtFrom.setVisibility(View.VISIBLE);
+        txtFrom.setText(dateFormat.format(startTime));
+        pbFrom.setVisibility(View.GONE);
+        txtTo.setVisibility(View.VISIBLE);
+        txtTo.setText(dateFormat.format(endTime));
+        pbTo.setVisibility(View.GONE);
     }
 }
