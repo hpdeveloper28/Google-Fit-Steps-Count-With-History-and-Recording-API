@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 
 /**
  * Created by hirenpatel on 26/10/17.
- * This Asynctask will get number of steps for user and update UI
+ * This Asynctask will get number of steps between two times (Start and End) for user and update UI
  * Integer as Result: Total count for steps
  */
 
@@ -51,6 +51,12 @@ public class GetStepsCountTask extends AsyncTask<Void, Void, Integer> {
 
     }
 
+    /**
+     * Get steps walked by user between two times
+     * @param startDateMillis - Start time
+     * @param endDateMillis - End time
+     * @return - Total steps count walked by user
+     */
     private int getStepsCountFromFIT(long startDateMillis, long endDateMillis) {
 
         DataSource ESTIMATED_STEP_DELTAS = new DataSource.Builder()
@@ -91,12 +97,19 @@ public class GetStepsCountTask extends AsyncTask<Void, Void, Integer> {
         return totalSteps;
     }
 
-
+    /**
+     * Make total steps
+     * @param step - Single step found from field of DataPoint
+     */
     private void addSteps(int step) {
         Log.e(TAG, step + "");
         totalSteps += step;
     }
 
+    /**
+     * Get Field from DataPoint and DataPoint from DataSource
+     * @param dataSet
+     */
     private void showDataSet(DataSet dataSet) {
         int steps = 0;
         for (DataPoint dp : dataSet.getDataPoints()) {
