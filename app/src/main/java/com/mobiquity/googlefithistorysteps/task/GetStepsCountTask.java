@@ -120,5 +120,3 @@ public class GetStepsCountTask extends AsyncTask<Void, Void, Integer> {
         }
     }
 }
-
-
